@@ -150,6 +150,45 @@ app.post('/properties/add-property', authenticateToken, (req, res) => {
 
 });
 
+app.post('/properties/inquire', (req, res) => {
+    //Read client JSON and assign values to constants, with the exception of inquiry ID which is auto-increment so don't give the client the option and just assign it a null variable
+    //API gets inquiry from the gateway, and expects to receive a query string for the ID, so run a check to make sure it gets it.
+
+        const { inquiry_id } = "";
+        const property_id = req.query.property;
+        const { inquiry_name } = req.body;
+        const { inquiry_email } = req.body;
+        const { inquiry_message } = req.body;
+
+if (property_id) {
+    //All fields are required to run the SQL query, so check if all constant's are assigned
+        if ( inquiry_name && inquiry_email && inquiry_message ) {
+            //If true, return 200 and send confirmation JSON to client
+            con.query("INSERT INTO inquiry (inquiry_id, property_id, name, email, message) VALUES ('" + inquiry_id + "', '"+ property_id + "', '"+ inquiry_name + "', '"+ inquiry_email + "', '"+ inquiry_message + "')", function (err, result, fields) {
+                if (err) throw err;
+                res.status(200).json({
+                    message: "Thank you || Inqury received, you will hear from us within 24-48 hours."
+                })
+              });
+        } else {
+            //else return 406, tell client to check their syntax/JSON
+            res.status(406).json({
+                message: 'There is an error with your json. All fields are required to send, please refer to [OPTIONS:/properties/inquire] for database input syntax.',
+                server_message_01: inquiry_name,
+                server_message_02: inquiry_email,
+                server_message_03: inquiry_message,
+                server_message_04: property_id
+    
+            })
+        }
+    } else {
+        res.status(418).json({
+            message: "You need to provide the property ID as the query string in order to inquire, please refer to [OPTIONS:/properties/inquire] for database input syntax."
+        })
+    }
+    
+    });
+
 
   //                //
  //UPDATE ENDPOINTS//
@@ -319,6 +358,22 @@ app.options('/properties/update-property', (req, res) => {
         server_message_06: '---------------------',
         server_message_07: '=> category_id: || 1: Purchases || 2: Rentals || 3: Land || 4: House and Land Packages ||',
         server_message_08: '=> city_id: || 1: Sydney || 2: Brisbane || 3: Melbourne ||',
+    })
+});
+
+//Update Menu//
+app.options('/properties/inquire', (req, res) => {
+    res.status(200).json({
+        server_message_01: '=> Method by which to contact GOAT Real Estate about a certain property',
+        server_message_02: '=> To inquire about a property -- [POST:/properties/inquire?property=x]',
+        server_message_03: '=> Where x, replace with the property_id of the property you wish to enquire about',
+        server_message_04: '=> IMPORTANT: Ensure that POST body is in JSON as follows, all fields require data to be valid JSON.',
+        server_message_05: '---------------------',
+        inquiry_name: "John Smith",
+        inquiry_email: "email@email.com",
+        inquiry_message: "Lorem Ipsum",
+        server_message_06: '---------------------',
+        server_message_07: '=> In order to find property id, query through [GET:/properties] gateways ',
     })
 });
 
