@@ -26,6 +26,9 @@ console.log("Connected!");
 //Initialize Express Apps
 const express = require('express');
 const app = express();
+const { check, body, validationResult } = require('express-validator');
+
+
 
 const PORT = 5500;
 
@@ -36,7 +39,7 @@ app.use(express.json());
 
 app.get('/', (req, res) => {
     res.status(400).json({
-        Message: "Wrong API access gateway, please step forward to /~/properties to access API gateways -- please refer to [OPTIONS:/properties] if you need assistance",
+        Message: "Wrong API access gateway, please head to /~/properties to access API gateways -- please refer to [OPTIONS:/properties] if you need assistance",
     })
 });
 
@@ -122,8 +125,6 @@ app.get('/properties/city/:city', (req, res) => {
  //POST ENDPOINTS//
 //              //
 
-//THESE VARIABLES AREN'T SANITIZED SO REMEMBER TO DO THAT!!!!!!!!!
-
 app.post('/properties/add-property', authenticateToken, (req, res) => {
 //Read client JSON and assign values to constants, with the exception of ID which is auto-increment so don't give the client the option and just assign it a null variable
     const { property_id } = "";
@@ -131,23 +132,37 @@ app.post('/properties/add-property', authenticateToken, (req, res) => {
     const { property_price } = req.body;
     const { category_id } = req.body;
     const { city_id } = req.body;
-//All fields are required to run the SQL query, so check if all constant's are assigned
-    if ( property_address && property_price && category_id && city_id ) {
-        //If true, return 200 and send confirmation JSON to client
-        con.query("INSERT INTO properties (property_id, property_address, property_price, category_id, city_id) VALUES ('" + property_id + "', '"+ property_address + "', '"+ property_price + "', '"+ category_id + "', '"+ city_id + "')", function (err, result, fields) {
-            if (err) throw err;
-            res.status(200).json({
-                message: "Row successfully added to database."
-            })
-          });
-    } else {
-        //else return 406, tell client to check their syntax/JSON
-        res.status(406).json({
-            message: 'There is an error with your json. All column fields are required to send, please refer to [OPTIONS:/properties/add-property] for database input syntax.',
 
+    //First validator to check if the provided constants that are not numbers
+    if ( isNaN(property_price) || isNaN(category_id) || isNaN(city_id) ) {
+        res.status(400).json({
+            message: "Please ensure [property_price], [category_id], and [city_id] are numbers"
         })
-    }
+    } else {
+    //Second Validator layer, check if user has tried to input id's above the maximum, if yes reject
+        if (category_id > 4 || city_id > 3) {
+            res.status(400).json({
+                message: "Please ensure [category_id], and [city_id] are valid ID numbers, check [OPTIONS:/properties/add-property] if you need help "
+        })
+        } else {
+        //All fields are required to run the SQL query, so check if all constant's are assigned
+            if ( property_address && property_price && category_id && city_id ) {
+                //If true, return 200 and send confirmation JSON to client, run SQL query via prepared statements 
+                con.query("INSERT INTO properties (property_id, property_address, property_price, category_id, city_id) VALUES ('" + property_id + "', ?, ?, ?, ?)", [property_address, property_price, category_id, city_id], function (err, result, fields) {    
+                    if (err) throw err;
+                    res.status(200).json({
+                        message: "Row successfully added to database."
+                    })
+                });
+            } else {
+                //else return 406, tell client to check their syntax/JSON
+                res.status(406).json({
+                    message: 'There is an error with your json. All column fields are required to send, please refer to [OPTIONS:/properties/add-property] for database input syntax.',
 
+                })
+            }
+        }
+    }
 });
 
 app.post('/properties/inquire', (req, res) => {
@@ -163,8 +178,8 @@ app.post('/properties/inquire', (req, res) => {
 if (property_id) {
     //All fields are required to run the SQL query, so check if all constant's are assigned
         if ( inquiry_name && inquiry_email && inquiry_message ) {
-            //If true, return 200 and send confirmation JSON to client
-            con.query("INSERT INTO inquiry (inquiry_id, property_id, name, email, message) VALUES ('" + inquiry_id + "', '"+ property_id + "', '"+ inquiry_name + "', '"+ inquiry_email + "', '"+ inquiry_message + "')", function (err, result, fields) {
+            //If true, return 200 and send confirmation JSON to client, send inquiry via prepared statement
+            con.query("INSERT INTO inquiry (inquiry_id, property_id, name, email, message) VALUES ('" + inquiry_id + "', ?, ?, ?, ?)",[property_id, inquiry_name, inquiry_email, inquiry_message], function (err, result, fields) {
                 if (err) throw err;
                 res.status(200).json({
                     message: "Thank you || Inqury received, you will hear from us within 24-48 hours."
@@ -182,7 +197,7 @@ if (property_id) {
             })
         }
     } else {
-        res.status(418).json({
+        res.status(400).json({
             message: "You need to provide the property ID as the query string in order to inquire, please refer to [OPTIONS:/properties/inquire] for database input syntax."
         })
     }
@@ -218,50 +233,83 @@ app.put('/properties/update-property/:property_id', authenticateToken, (req, res
     const { property_price } = req.body;
     const { category_id } = req.body;
     const { city_id } = req.body;
-    //All fields are required to run the SQL query, so check if all constant's are assigned
-        if ( property_address && property_price && category_id && city_id ) {
-            //If true, return 200, update row, and send confirmation JSON to client
-            con.query("UPDATE properties SET property_address = '"+ property_address + "', property_price = '"+ property_price + "', category_id = '"+ category_id + "', city_id = '" + city_id + "' WHERE property_id = '"+ property_id + "' ", function (err, result, fields) {
-                if (err) throw err;
-                res.status(200).json({
-                    message: "Row successfully updated."
-                })
-              });
-        } else {
-            //else return 406, tell client to check their syntax/JSON
-            res.status(406).json({
-                message: 'There is an error with your json. All column fields are required to send, please refer to [OPTIONS:/properties/update-property] for database input syntax.',
-    
-            })
-        }
 
+    //First validator to check if the provided constants that are not numbers
+    if ( isNaN(property_price) || isNaN(category_id) || isNaN(city_id) ) {
+        res.status(400).json({
+            message: "Please ensure [property_price], [category_id], and [city_id] are numbers"
+        })
+    } else {
+    //Second Validator layer, check if user has tried to input id's above the maximum, if yes reject
+            if (category_id > 4 || city_id > 3) {
+                res.status(400).json({
+                    message: "Please ensure [category_id], and [city_id] are valid ID numbers, check [OPTIONS:/properties/add-property] if you need help "
+            })
+            } else {
+            
+
+                //All fields are required to run the SQL query, so check if all constant's are assigned
+                    if ( property_address && property_price && category_id && city_id ) {
+                        //If true, return 200, update row, and send confirmation JSON to client query db with prepared statement
+                        con.query("UPDATE properties SET property_address = ?, property_price = ?, category_id = ?, city_id = ? WHERE property_id = '"+ property_id + "'", [property_address, property_price, category_id, city_id], function (err, result, fields) {
+                            if (err) throw err;
+                            res.status(200).json({
+                                message: "Row successfully updated."
+                            })
+                        });
+                    } else {
+                        //else return 406, tell client to check their syntax/JSON
+                        res.status(406).json({
+                            message: 'There is an error with your json. All column fields are required to send, please refer to [OPTIONS:/properties/update-property] for database input syntax.',
+                
+                        })
+                    }
+            }
+        }
     });
 
     //Repeat for pretty much everything but with patch as the verb
     app.patch('/properties/update-property/:property_id', authenticateToken, (req, res) => {
     
+        //Assign all fields to json, and property ID to request parameter
         const { property_id } = req.params;
         const { property_address } = req.body;
         const { property_price } = req.body;
         const { category_id } = req.body;
         const { city_id } = req.body;
-        //All fields are required to run the SQL query, so check if all constant's are assigned
-            if ( property_address && property_price && category_id && city_id ) {
-                //If true, return 200 and send confirmation JSON to client
-                con.query("UPDATE properties SET property_address = '"+ property_address + "', property_price = '"+ property_price + "', category_id = '"+ category_id + "', city_id = '" + city_id + "' WHERE property_id = '"+ property_id + "' ", function (err, result, fields) {
-                    if (err) throw err;
-                    res.status(200).json({
-                        message: "Row successfully updated."
-                    })
-                  });
-            } else {
-                //else return 406, tell client to check their syntax/JSON
-                res.status(406).json({
-                    message: 'There is an error with your json. All column fields are required to send, please refer to [OPTIONS:/properties/update-property] for database input syntax.',
-        
-                })
-            }
     
+        //First validator to check if the provided constants that are not numbers
+        if ( isNaN(property_price) || isNaN(category_id) || isNaN(city_id) ) {
+            res.status(400).json({
+                message: "Please ensure [property_price], [category_id], and [city_id] are numbers"
+            })
+        } else {
+        //Second Validator layer, check if user has tried to input id's above the maximum, if yes reject
+                if (category_id > 4 || city_id > 3) {
+                    res.status(400).json({
+                        message: "Please ensure [category_id], and [city_id] are valid ID numbers, check [OPTIONS:/properties/add-property] if you need help "
+                })
+                } else {
+                
+    
+                    //All fields are required to run the SQL query, so check if all constant's are assigned
+                        if ( property_address && property_price && category_id && city_id ) {
+                            //If true, return 200, update row, and send confirmation JSON to client query db with prepared statement
+                            con.query("UPDATE properties SET property_address = ?, property_price = ?, category_id = ?, city_id = ? WHERE property_id = '"+ property_id + "'", [property_address, property_price, category_id, city_id], function (err, result, fields) {
+                                if (err) throw err;
+                                res.status(200).json({
+                                    message: "Row successfully updated."
+                                })
+                            });
+                        } else {
+                            //else return 406, tell client to check their syntax/JSON
+                            res.status(406).json({
+                                message: 'There is an error with your json. All column fields are required to send, please refer to [OPTIONS:/properties/update-property] for database input syntax.',
+                    
+                            })
+                        }
+                }
+            }
         });
 
   //                //
@@ -277,8 +325,8 @@ app.delete('/properties/delete-property', (req, res) => {
 app.delete('/properties/delete-property/:property_id', authenticateToken, (req, res) => {
     
     const { property_id } = req.params;
-
-    con.query("DELETE FROM properties WHERE property_id = '"+ property_id + "' ", function (err, result, fields) {
+    con.query("DELETE FROM properties WHERE property_id = '?' ", [property_id], function (err, result, fields) {
+    // con.query("DELETE FROM properties WHERE property_id = '"+ property_id + "' ", function (err, result, fields) {
         if (err) throw err;
         res.status(200).json({
             message: "Row successfully deleted."
@@ -377,6 +425,20 @@ app.options('/properties/inquire', (req, res) => {
     })
 });
 
+//User Menu//
+app.options('/user', (req, res) => {
+    res.status(200).json({
+        server_message_01: '=> Staff login section',
+        server_message_02: '=> To login -- [POST:/user/login]',
+        server_message_03: '=> Staff to provide username and password in JSON files and are presented their authorization headers',
+        server_message_04: '=> IMPORTANT: Ensure that POST body is in JSON as follows, all fields require data to be valid JSON.',
+        server_message_05: '---------------------',
+        username: "username",
+        password: "password",
+        server_message_06: '---------------------',
+    })
+});
+
 
   //              //
  //USER ENDPOINTS//
@@ -419,7 +481,7 @@ app.post('/user/login', async (req, res) => {
             if (err) throw err;
                 if (!result) {
                     //If there is no results then refuse and return this rejection
-                    res.status(418).json({message: 'Could not find a staff member with that username'});
+                    res.status(404).json({message: 'Could not find a staff member with that username'});
                 } else {
                     //Else the staff does exist and now we can check passwords, write json object to use as a cryptographic token in JWT
                     //Take the password recieved from the database and write it to a variable
@@ -438,7 +500,7 @@ app.post('/user/login', async (req, res) => {
                         })
                     } else {
                         //Password was invalid so return a status and tell them that.
-                        res.status(418).json({
+                        res.status(403).json({
                             message: 'Password is invalid',
                         })
                     }
@@ -485,8 +547,9 @@ function authenticateToken(req, res, next) {
     //If the user did provide a token, and it isn't a valid token, then return this header
     jwt.verify(token, `${process.env.ACCESS_TOKEN_SECRET}`, (err, user) => {
         if (err) {
-            return res.status(418).json({server_message: "your token is not valid"})
+            return res.status(403).json({server_message: "your token is not valid"})
         }
         next()
     })
 }
+
