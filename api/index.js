@@ -27,6 +27,7 @@ console.log("Connected!");
 const express = require('express');
 const app = express();
 const { check, body, validationResult } = require('express-validator');
+const { query } = require("express");
 
 
 
@@ -64,7 +65,7 @@ app.get('/properties', (req, res) => {
         });
     } else {
         //If there is an ID then query the database where property id = the query id
-        con.query("SELECT * FROM properties WHERE property_id = " + prop_id, function (err, result, fields) {
+        con.query("SELECT * FROM properties WHERE property_id = ?",[prop_id], function (err, result, fields) {
         if (err) throw err;
         res.status(200).json({result})
         });
@@ -89,7 +90,7 @@ app.get('/properties/type/:category', (req, res) => {
 
     const { category } = req.params;
 
-    con.query("SELECT * FROM properties WHERE category_id = " + category, function (err, result, fields) {
+    con.query("SELECT * FROM properties WHERE category_id = ?",[category], function (err, result, fields) {
       if (err) throw err;
       res.status(200).json({result})
     });
@@ -113,7 +114,7 @@ app.get('/properties/city/:city', (req, res) => {
 
   const { city } = req.params;
 
-  con.query("SELECT * FROM properties WHERE city_id = " + city, function (err, result, fields) {
+  con.query("SELECT * FROM properties WHERE city_id = ?",[city], function (err, result, fields) {
     if (err) throw err;
     res.status(200).json({result})
   });
@@ -188,12 +189,7 @@ if (property_id) {
         } else {
             //else return 406, tell client to check their syntax/JSON
             res.status(406).json({
-                message: 'There is an error with your json. All fields are required to send, please refer to [OPTIONS:/properties/inquire] for database input syntax.',
-                server_message_01: inquiry_name,
-                server_message_02: inquiry_email,
-                server_message_03: inquiry_message,
-                server_message_04: property_id
-    
+                message: 'There is an error with your json. All fields are required to send, please refer to [OPTIONS:/properties/inquire] for database input syntax.',    
             })
         }
     } else {
@@ -325,8 +321,7 @@ app.delete('/properties/delete-property', (req, res) => {
 app.delete('/properties/delete-property/:property_id', authenticateToken, (req, res) => {
     
     const { property_id } = req.params;
-    con.query("DELETE FROM properties WHERE property_id = '?' ", [property_id], function (err, result, fields) {
-    // con.query("DELETE FROM properties WHERE property_id = '"+ property_id + "' ", function (err, result, fields) {
+    con.query("DELETE FROM properties WHERE property_id = ? ", [property_id], function (err, result, fields) {
         if (err) throw err;
         res.status(200).json({
             message: "Row successfully deleted."
@@ -477,15 +472,16 @@ app.post('/user/login', async (req, res) => {
 
     try {
         //Now take those variables, query the database for a user with that username
-        con.query("SELECT password FROM staff WHERE username = '" + username + "'", async function (err, result, fields) {
-            if (err) throw err;
-                if (!result) {
+        con.query("SELECT password FROM staff WHERE username = ?",[username], async function (err, result, fields) {
+            console.log(query);
+             if (err) throw err;
+                if (!result[0]) {
                     //If there is no results then refuse and return this rejection
                     res.status(404).json({message: 'Could not find a staff member with that username'});
                 } else {
                     //Else the staff does exist and now we can check passwords, write json object to use as a cryptographic token in JWT
                     //Take the password recieved from the database and write it to a variable
-                    const user = { username: username}
+                    const user = { username: username};
                     const db_pass = result[0].password;
                     
                     //Run bcrypt compare on database password and provided plaintext password
@@ -540,7 +536,7 @@ function authenticateToken(req, res, next) {
     //If the user didn't provide a token then they are told they aren't authorized, return a 401
     if (token == null) { 
         return res.status(401).json({
-            server_message: "You aren't authorized to access this content.",
+            server_message: "You aren't authorized to conduct this action.",
         })
     }
 
