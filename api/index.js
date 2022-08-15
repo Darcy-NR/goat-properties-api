@@ -3,7 +3,7 @@ require("dotenv").config()
 //Initialize MySQL
 const mysql = require('mysql');
 
-//Setting connection variables to a mysql connection function completely insecure but this is a demo.
+//Setting connection variables to a mysql connection function
 var con = mysql.createConnection({
     host: "localhost",
     user: "root",
@@ -26,12 +26,19 @@ console.log("Connected!");
 //Initialize Express Apps
 const express = require('express');
 const app = express();
-const { check, body, validationResult } = require('express-validator');
 const { query } = require("express");
 
+//Initialize scripts for CORS
+const cors = require('cors');
+
+//Activate Cors to allow for cross site resource sharing
+app.use(cors({
+    origin: '*'
+}));
 
 
-const PORT = 5500;
+
+const PORT = 8080;
 
 //Import JSON parser middleware
 app.use(express.json());
@@ -40,7 +47,7 @@ app.use(express.json());
 
 app.get('/', (req, res) => {
     res.status(400).json({
-        Message: "Wrong API access gateway, please head to /~/properties to access API gateways -- please refer to [OPTIONS:/properties] if you need assistance",
+        Message: "Wrong API access gateway, please head to /~/properties to access API gateways -- please refer to [GET:/properties/help] if you need assistance",
     })
 });
 
@@ -82,7 +89,7 @@ app.get('/properties', (req, res) => {
 /*If user attempts /~/properties/type without providing category ID as parameter
 send them a 400 and tell them to provide it. */
 app.get('/properties/type', (req, res) => {
-      res.status(400).send({message: 'Please provide a category ID as type parameter -- Please refer to [OPTIONS:/properties] if you need help.'})
+      res.status(400).send({message: 'Please provide a category ID as type parameter -- Please refer to [GET:/properties/help] if you need help.'})
 });
 
 /*Otherwise run the query based on parameter input */
@@ -106,7 +113,7 @@ app.get('/properties/type/:category', (req, res) => {
 /*If user attempts /~/properties/city without providing city ID as parameter
 send them a 400 and tell them to provide it. */
 app.get('/properties/city', (req, res) => {
-    res.status(400).send({message: 'Please provide a city ID as city parameter -- Please refer to [OPTIONS:/properties] if you need help.'})
+    res.status(400).send({message: 'Please provide a city ID as city parameter -- Please refer to [GET:/properties/help] if you need help.'})
 });
 
 /*Otherwise run the query based on parameter input */
@@ -143,7 +150,7 @@ app.post('/properties/add-property', authenticateToken, (req, res) => {
     //Second Validator layer, check if user has tried to input id's above the maximum, if yes reject
         if (category_id > 4 || city_id > 3) {
             res.status(400).json({
-                message: "Please ensure [category_id], and [city_id] are valid ID numbers, check [OPTIONS:/properties/add-property] if you need help "
+                message: "Please ensure [category_id], and [city_id] are valid ID numbers, check [GET:/properties/add-property/help] if you need help "
         })
         } else {
         //All fields are required to run the SQL query, so check if all constant's are assigned
@@ -158,7 +165,7 @@ app.post('/properties/add-property', authenticateToken, (req, res) => {
             } else {
                 //else return 406, tell client to check their syntax/JSON
                 res.status(406).json({
-                    message: 'There is an error with your json. All column fields are required to send, please refer to [OPTIONS:/properties/add-property] for database input syntax.',
+                    message: 'There is an error with your json. All column fields are required to send, please refer to [GET:/properties/add-property/help] for database input syntax.',
 
                 })
             }
@@ -189,12 +196,12 @@ if (property_id) {
         } else {
             //else return 406, tell client to check their syntax/JSON
             res.status(406).json({
-                message: 'There is an error with your json. All fields are required to send, please refer to [OPTIONS:/properties/inquire] for database input syntax.',    
+                message: 'There is an error with your json. All fields are required to send, please refer to [GET:/properties/inquire/help] for database input syntax.',    
             })
         }
     } else {
         res.status(400).json({
-            message: "You need to provide the property ID as the query string in order to inquire, please refer to [OPTIONS:/properties/inquire] for database input syntax."
+            message: "You need to provide the property ID as the query string in order to inquire, please refer to [GET:/properties/inquire/help] for database input syntax."
         })
     }
     
@@ -210,13 +217,13 @@ if (property_id) {
 
 app.put('/properties/update-property', (req, res) => {
     res.status(400).send({
-        message: 'Please provide the id number of the property to update -- Please refer to [OPTIONS:/properties/update-property] if you need help.'
+        message: 'Please provide the id number of the property to update -- Please refer to [GET:/properties/update-property/help] if you need help.'
     })
 });
 
 app.patch('/properties/update-property', (req, res) => {
     res.status(400).send({
-        message: 'Please provide the id number of the property to update -- Please refer to [OPTIONS:/properties/update-property] if you need help.'
+        message: 'Please provide the id number of the property to update -- Please refer to [GET:/properties/update-property/help] if you need help.'
     })
 });
 
@@ -239,7 +246,7 @@ app.put('/properties/update-property/:property_id', authenticateToken, (req, res
     //Second Validator layer, check if user has tried to input id's above the maximum, if yes reject
             if (category_id > 4 || city_id > 3) {
                 res.status(400).json({
-                    message: "Please ensure [category_id], and [city_id] are valid ID numbers, check [OPTIONS:/properties/add-property] if you need help "
+                    message: "Please ensure [category_id], and [city_id] are valid ID numbers, check [GET:/properties/add-property/help] if you need help "
             })
             } else {
             
@@ -256,7 +263,7 @@ app.put('/properties/update-property/:property_id', authenticateToken, (req, res
                     } else {
                         //else return 406, tell client to check their syntax/JSON
                         res.status(406).json({
-                            message: 'There is an error with your json. All column fields are required to send, please refer to [OPTIONS:/properties/update-property] for database input syntax.',
+                            message: 'There is an error with your json. All column fields are required to send, please refer to [GET:/properties/update-property/help] for database input syntax.',
                 
                         })
                     }
@@ -283,7 +290,7 @@ app.put('/properties/update-property/:property_id', authenticateToken, (req, res
         //Second Validator layer, check if user has tried to input id's above the maximum, if yes reject
                 if (category_id > 4 || city_id > 3) {
                     res.status(400).json({
-                        message: "Please ensure [category_id], and [city_id] are valid ID numbers, check [OPTIONS:/properties/add-property] if you need help "
+                        message: "Please ensure [category_id], and [city_id] are valid ID numbers, check [GET:/properties/add-property/help] if you need help "
                 })
                 } else {
                 
@@ -300,7 +307,7 @@ app.put('/properties/update-property/:property_id', authenticateToken, (req, res
                         } else {
                             //else return 406, tell client to check their syntax/JSON
                             res.status(406).json({
-                                message: 'There is an error with your json. All column fields are required to send, please refer to [OPTIONS:/properties/update-property] for database input syntax.',
+                                message: 'There is an error with your json. All column fields are required to send, please refer to [GET:/properties/update-property/help] for database input syntax.',
                     
                             })
                         }
@@ -314,7 +321,7 @@ app.put('/properties/update-property/:property_id', authenticateToken, (req, res
 
 app.delete('/properties/delete-property', (req, res) => {
     res.status(400).json({
-        Message: 'Please provide a property id for the property you wish to delete, please refer to [OPTIONS:/properties/delete-property] for syntax.'
+        Message: 'Please provide a property id for the property you wish to delete, please refer to [GET:/properties/delete-property/help] for syntax.'
     })
 });
 
@@ -330,12 +337,14 @@ app.delete('/properties/delete-property/:property_id', authenticateToken, (req, 
 
 });
 
-  //              //
- //CORS ENDPOINTS//
-//              //
+  //                             //
+ //CORS PREFLIGHT and Help Menus//
+//                             //
+
+app.options('*', cors())
 
 //Main menu//
-app.options('/properties', (req, res) => {
+app.get('/properties/help', (req, res) => {
     res.status(200).json({
         Welcome: 'WELCOME TO GOAT REAL ESTATE.',
         server_message_01: '=> POST, PUT/PATCH, and DELETE API reads via JSON, syntax for requests is important so please take care to ensure JSON syntax on particular requests is set.',
@@ -350,7 +359,7 @@ app.options('/properties', (req, res) => {
         server_message_10: '=> To return properties by city -- [GET:/properties/city/x]',
         server_message_11: '=> ||1: Sydney || 2: Brisbane || 3: Melbourne ||',
         server_message_12: '=> --------------',
-        server_message_13: '=> [OPTIONS] headers will assist with syntax on all other gateways',
+        server_message_13: '=> [/~/help/] exist and will assist with syntax on all other gateways',
         server_message_14: '=> --------------',
         server_message_15: '=> Other gateways:',
         server_message_16: '=> [POST:/properties/add-propety]',
@@ -361,7 +370,7 @@ app.options('/properties', (req, res) => {
 });
 
 //Add Menu//
-app.options('/properties/add-property', (req, res) => {
+app.get('/properties/add-property/help', (req, res) => {
     res.status(200).json({
         server_message_01: '=> Authentication is required to add properties',
         server_message_02: '=> To add a property to the database -- [POST:/properties/add-property]',
@@ -378,7 +387,7 @@ app.options('/properties/add-property', (req, res) => {
 });
 
 //Delete Menu//
-app.options('/properties/delete-property', (req, res) => {
+app.get('/properties/delete-property/help', (req, res) => {
     res.status(200).json({
         server_message_01: '=> Authentication is required to delete properties',
         server_message_02: '=> To delete a property -- [DELETE:/properties/delete-property/x]',
@@ -387,7 +396,7 @@ app.options('/properties/delete-property', (req, res) => {
 });
 
 //Update Menu//
-app.options('/properties/update-property', (req, res) => {
+app.get('/properties/update-property/help', (req, res) => {
     res.status(200).json({
         server_message_01: '=> Authentication is required to update properties',
         server_message_02: '=> To update a property -- [PUT/PATCH:/properties/update-property/x]',
@@ -405,7 +414,7 @@ app.options('/properties/update-property', (req, res) => {
 });
 
 //Update Menu//
-app.options('/properties/inquire', (req, res) => {
+app.get('/properties/inquire/help', (req, res) => {
     res.status(200).json({
         server_message_01: '=> Method by which to contact GOAT Real Estate about a certain property',
         server_message_02: '=> To inquire about a property -- [POST:/properties/inquire?property=x]',
@@ -421,7 +430,7 @@ app.options('/properties/inquire', (req, res) => {
 });
 
 //User Menu//
-app.options('/user', (req, res) => {
+app.get('/user/help', (req, res) => {
     res.status(200).json({
         server_message_01: '=> Staff login section',
         server_message_02: '=> To login -- [POST:/user/login]',

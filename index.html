@@ -11,11 +11,21 @@
     </head>
     <body>
 
-        <h1>Hello World</h1>
-        <img src="assets/placeholder.JPG"/>
+        <h1>CORS Test</h1>
+
+        <div class="section">
+            <button onclick="getInfo()">Get Properties</button>
+        </div>
         
-        <script src="/api/index.js" async defer></script>
-        <!-- SEE IF I CAN GET A RESPONSE HERE THAT DIRECTS YOU TO GO TO THE API GATEWAY?
-         -->
+        <script>
+
+        const getInfo = async () =>{
+         await fetch("http://localhost:8080/properties")
+         .then(req => req.json())
+         .then(data => console.log(data))
+         }
+
+        </script>
+
     </body>
 </html>
